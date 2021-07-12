@@ -47,7 +47,7 @@ function before_test() {
 
     # Set os-variant and boot location used by virt-install.
     case "${ID}-${VERSION_ID}" in
-        "rhel-8.4")
+        "rhel-8.3")
             IMAGE_TYPE="rhel-edge-commit"
             OSTREE_REF="rhel/8/${ARCH}/edge"
             OS_VARIANT="rhel8-unknown"
