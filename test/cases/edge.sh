@@ -42,6 +42,7 @@ SSH_KEY=${IMAGE_BUILDER_TEST_DATA}/keyring/id_rsa
 
 KS_FILE=${WORKDIR}/ks.cfg
 COMMIT_FILENAME="commit.tar"
+ISO_FILENAME="installer.iso"
 
 # Run before test begin to prepare test environment
 function before_test() {
@@ -223,21 +224,6 @@ function download_image() {
     $CURLCMD "$RESULT_URL" --output "$1"
 }
 
-# Get metadata of the image
-function verify_metadata() {
-    local RESULT
-    RESULT=$($CURLCMD -H "$HEADER" --request GET "$BASEURL/composes/$COMPOSE_ID/metadata")
-    EXIT_CODE=$(get_exit_code "$RESULT")
-    [[ $EXIT_CODE == 200 ]]
-
-    local PACKAGENAMES
-    PACKAGENAMES=$(get_response "$RESULT" | jq -r '.packages[].name')
-    if ! grep -q python36 <<< "${PACKAGENAMES}"; then
-        echo "'python36' not found in compose package list 😠"
-        exit 1
-    fi
-}
-
 # Test result checking
 check_result () {
     greenprint "🎏 Checking for test result"
@@ -295,7 +281,6 @@ EOF
 
 post_to_composer "${WORKDIR}"/commit_body.json
 wait_for_compose
-verify_metadata
 download_image "${WORKDIR}/$COMMIT_FILENAME"
 
 # extract commit image to http path
@@ -416,7 +401,7 @@ sudo virsh undefine "${IMAGE_KEY}-commit"
 
 ############################## Test installer image #########################
 # call image-builder API to build installer iso image
-greenprint "📼 Generate request body to build commit image"
+greenprint "📼 Generate request body to build iso image"
 sudo tee "${WORKDIR}"/installer_body.json > /dev/null << EOF
 {
     "distribution": "${DISTRO}",
@@ -442,7 +427,6 @@ EOF
 
 post_to_composer "${WORKDIR}"/installer_body.json
 wait_for_compose
-verify_metadata
 download_image "${WORKDIR}/$ISO_FILENAME"
 
 
@@ -484,9 +468,10 @@ ISO_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-installer.qcow2
 sudo qemu-img create -f qcow2 "${ISO_IMAGE_PATH}" 20G
 
 # Put ks.cfg into iso file
+greenprint "🖥 Use mkksiso to put kickstart file in iso image"
 sudo mv "${WORKDIR}/${ISO_FILENAME}" /var/lib/libvirt/images/
 sudo dnf install -y lorax
-sudo wget -cN https://raw.githubusercontent.com/weldr/lorax/master/src/sbin/mkksiso -o "${WORKDIR}/mkksiso"
+sudo wget -cN https://raw.githubusercontent.com/weldr/lorax/master/src/sbin/mkksiso -O "${WORKDIR}/mkksiso"
 sudo chmod +x "${WORKDIR}/mkksiso"
 sudo "${WORKDIR}/mkksiso" -c "console=ttyS0,115200" "$KS_FILE" "/var/lib/libvirt/images/${ISO_FILENAME}" /var/lib/libvirt/images/output.iso
 

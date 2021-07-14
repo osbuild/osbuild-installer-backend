@@ -70,9 +70,6 @@ install -m 0755 -vd                                             %{buildroot}%{_d
 install -m 0644 -vp test/data/keyring/id_rsa.pub                %{buildroot}%{_datadir}/tests/image-builder/keyring/
 install -m 0600 -vp test/data/keyring/id_rsa                    %{buildroot}%{_datadir}/tests/image-builder/keyring/
 
-install -m 0755 -vd                                             %{buildroot}%{_datadir}/tests/image-builder/repositories
-install -m 0644 -vp test/data/repositories/*                    %{buildroot}%{_datadir}/tests/image-builder/repositories/
-
 %endif
 
 %post
@@ -106,6 +103,7 @@ Requires:   qemu-kvm
 Requires:   libvirt-client
 Requires:   libvirt-daemon-kvm
 Requires:   virt-install
+Requires:   wget
 
 %description tests
 Integration tests to be run on a system with image-builder installed.
